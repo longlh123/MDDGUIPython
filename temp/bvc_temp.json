@@ -1,0 +1,205 @@
+{
+    "SERIAL" : {
+        "label" : "Serial",
+        "properties" : {
+            "required_variable" : true,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "WEIGHT" : {
+        "label" : "Weight",
+        "properties" : {
+            "required_variable" : true,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "WAVE" : {
+        "label" : "Wave",
+        "properties" : {
+            "required_variable" : true,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "FIL_MAIN" : {
+        "label" : "Main Sample",
+        "properties" : {
+            "required_variable" : true,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "ASKFIL_IMAGE" : {
+        "label" : "Image Asked",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "ASKFIL_PRESELECT" : {
+        "label" : "Pre selected brands",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "DEM" : {
+        "label" : "Demographics",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : true
+        }
+    },
+    "FIL" : {
+        "label" : "Other Filters",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : true
+        }
+    },
+    "TUBA" : {
+        "label" : "Top of mind and total mentions unaided brand aware",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "TMBA" : {
+        "label" : "Top of mind unaided brand aware",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "AABU" : {
+        "label" : "Aided aware and Brand use purchase",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "AWARE" : {
+        "label" : "Awareness",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "P12MUSAGE" : {
+        "label" : "P12M Usage",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "P3MUSAGE" : {
+        "label" : "P3M Usage",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "P1MUSAGE" : {
+        "label" : "P1M Usage",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "USAGE" : {
+        "label" : "Usage",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "SOW" : {
+        "label" : "Claimed Share",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "BUB" : {
+        "label" : "Brand units bought in the past [X] months",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "CONSIDER" : {
+        "label" : "Would consider",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "REJECT" : {
+        "label" : "Brand rejection",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "PBVC" : {
+        "label" : "Brand Performance",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "PPSEL" : {
+        "label" : "Brand Performance pre selected brands",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "CLBVC" : {
+        "label" : "Closeness",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "CLPSEL" : {
+        "label" : "Closeness pre selected brands",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "ME" : {
+        "label" : "",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "BARCON" : {
+        "label" : "",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "BIA" : {
+        "label" : "",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "PUT" : {
+        "label" : "",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : false
+        }
+    },
+    "TOUCHPOINTS" : {
+        "label" : "Touch points",
+        "properties" : {
+            "required_variable" : false,
+            "allow_user_to_add_variables" : true
+        }
+    } 
+}

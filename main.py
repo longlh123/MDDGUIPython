@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QPushButton, QTreeWidgetItem, QAbstractItemView
-from PyQt6.QtCore import Qt, QMimeData
-from PyQt6.QtGui import QIcon, QDrag
+from PyQt6.QtCore import Qt, QMimeData, QPoint
+from PyQt6.QtGui import QIcon, QDrag, QColor
 from gui.frmMain import Ui_MainWindow
 
 from dialogs.variable_list_dialog import VariableListDialog
@@ -51,7 +51,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         #Set the drap and drop in QTreeWidget and QTableWidget
         self.tree_questions.setDragEnabled(True)
-        
+        self.tree_questions.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
+
         #Connect the 'itemPressed' signal to the 'handleStartDrap' method
         self.tree_questions.itemPressed.connect(self.hanldeItemPressed)
 
@@ -154,13 +155,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tbl_bvc_questions.setColumnCount(3)
         self.tbl_bvc_questions.setRowCount(len(bvc_variables.keys()))
         self.tbl_bvc_questions.setHorizontalHeaderLabels(["Variable Name", "Variable Label", ""])
-
+        
         self.tbl_bvc_questions.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.tbl_bvc_questions.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        self.tbl_bvc_questions.setColumnWidth(2, 20)
+        self.tbl_bvc_questions.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
 
         self.tbl_bvc_questions.setAcceptDrops(True)
-        self.tbl_bvc_questions.setDragDropOverwriteMode(False)
+        self.tbl_bvc_questions.setDragDropMode(QAbstractItemView.DragDropMode.DropOnly)
+
+        self.tbl_bvc_questions.dragMoveEvent = self.dragMoveEvent
         self.tbl_bvc_questions.dragEnterEvent = self.dragEnterEvent
         self.tbl_bvc_questions.dropEvent = self.dropEvent
 
@@ -173,17 +176,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if j == 0:
                     if v["properties"]["required_variable"]:
                         item.setCheckState(Qt.CheckState.Checked)
-                        item.setFlags(~Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+                        item.setFlags(~Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
                     else:
                         item.setCheckState(Qt.CheckState.Unchecked)
-                        item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-                    
+                        item.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                        
                     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)        
                     item.setText(k)
 
                     self.tbl_bvc_questions.setItem(i, j, item)
                 elif j == 1:
-                    item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                    item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
                     item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                     item.setText(v["label"])
 
@@ -198,18 +201,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         self.tbl_bvc_questions.setItem(i, j, item)
                         self.tbl_bvc_questions.setCellWidget(i, j, button)
                     else:
-                        item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                        item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
                         self.tbl_bvc_questions.setItem(i, j, item)
             
             i = i + 1
         
-        self.tbl_bvc_questions.cellClicked.connect(self.handleCellClicked)
+        self.tbl_bvc_questions.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.tbl_bvc_questions.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         
+        self.tbl_bvc_questions.cellClicked.connect(self.handleCellClicked)
+
     def handleCellClicked(self, row, col):
         item = self.tbl_bvc_questions.item(row, col)
         corresponding_item = self.tbl_bvc_questions.cellWidget(row, col + 2)
 
-        if corresponding_item is not None:    
+        if corresponding_item is not None: 
+               
             corresponding_item.setEnabled(item.checkState() == Qt.CheckState.Checked)
             corresponding_item.clicked.connect(self.handleButtonClicked)
 
@@ -228,22 +235,52 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             if self.variable_list_dialog.exec():
                 a = ""
-       
-    def hanldeItemPressed(self, item):
-        if item.isSelected():
-            drag = QDrag(self.tree_questions)
+
+    def hanldeItemPressed(self, event):
+        if event.isSelected():
             data = QMimeData()
-            data.setText(item.text(0))
+            data.setText(event.text(0))
+            
+            drag = QDrag(self.tree_questions)
             drag.setMimeData(data)
+            
             drag.exec()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
-            event.acceptProposedAction()
+            item = self.tbl_bvc_questions.itemAt(event.position().toPoint())
+            
+            if item:
+                checkbox = self.tbl_bvc_questions.item(item.row(), 0)
+
+                if checkbox.checkState() == Qt.CheckState.Checked:
+                    event.accept()
+                else:
+                    event.ignore()
+            else:
+                event.ignore()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasText():
+            item = self.tbl_bvc_questions.itemAt(event.position().toPoint())
+
+            if item:
+                checkbox = self.tbl_bvc_questions.item(item.row(), 0)
+
+                if checkbox.checkState() == Qt.CheckState.Checked:
+                    event.accept()
+                else:
+                    event.ignore()
+            else:
+                event.ignore()
         else:
             event.ignore()
 
     def dropEvent(self, event):
-        self.tbl_bvc_questions.setItem(0, 0, QTableWidgetItem(event.mimeData().text()))
-        event.acceptProposedAction()
-        #mime_data = event.mimeData()
+        if event.mimeData().hasText():
+            item = self.tbl_bvc_questions.itemAt(event.position().toPoint())
+            
+            self.tbl_bvc_questions.setItem(item.row(), 2, QTableWidgetItem(event.mimeData().text()))
+            event.accept()

@@ -3,6 +3,8 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QMessageBox, QFi
 from gui.frmLogin import Ui_login_form
 from main import MainWindow
 
+from enumerations import objectDepartments
+
 class LoginForm(QWidget):
     def __init__(self):
         super().__init__()
@@ -24,7 +26,7 @@ class LoginForm(QWidget):
         #validate the email address and password
         if email == 'a' and password == 'a':
             #open the main form if the login is successful
-            self.main_form = MainWindow()
+            self.main_form = MainWindow(objectDepartments.CODING.value)
             self.main_form.showMaximized()
 
             #close the login form

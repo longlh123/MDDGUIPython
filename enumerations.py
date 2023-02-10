@@ -1,5 +1,9 @@
 from enum import Enum
 
+class objectDepartments(Enum):
+    DP = 'DATA PROCESSING',
+    CODING = 'CODING'
+
 class objectTypeConstants(Enum):
     mtUnknown = 'ff'
     mtVariable = '0'

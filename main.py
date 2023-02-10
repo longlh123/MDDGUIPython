@@ -58,29 +58,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tree_questions.itemPressed.connect(self.hanldeItemPressed)
 
         for field in self.MDM.Fields:
+            if field.Name == "StandardTexts":
+                a = ""
             node = self.add_node(field)
-            self.tree_questions.addTopLevelItem(node)
+
+            if node is not None:
+                self.tree_questions.addTopLevelItem(node)
 
         self.MDM.Close()
 
     def add_node(self, field, variables=list()):
         if str(field.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
-            node = QTreeWidgetItem()
-            node.setText(0, field.Name)
-            node.setIcon(0, self.get_field_icon(field))
+            if (self.department == objectDepartments.DP.value) or (self.department == objectDepartments.CODING.value and (field.DataType == dataTypeConstants.mtText.value or (field.DataType == dataTypeConstants.mtCategorical.value and field.OtherCategories.Count > 0))):
+                node = QTreeWidgetItem()
+                node.setText(0, field.Name)
+                node.setIcon(0, self.get_field_icon(field))
 
-            if field.DataType == dataTypeConstants.mtCategorical.value:
-                if field.OtherCategories.Count > 0:
-                    for helperfield in field.HelperFields:
-                        node_other = self.add_node(helperfield)
-                        node.addChild(node_other)
-            
-            if len(variables) > 0:
-                for variable in variables:
-                    node_variable = self.add_node(variable)
-                    node.addChild(node_variable)
+                if field.DataType == dataTypeConstants.mtCategorical.value:
+                    if field.OtherCategories.Count > 0:
+                        for helperfield in field.HelperFields:
+                            node_other = self.add_node(helperfield)
+                            node.addChild(node_other)
+                
+                if len(variables) > 0:
+                    for variable in variables:
+                        node_variable = self.add_node(variable)
+                        node.addChild(node_variable)
 
-            return node
+                return node
         elif str(field.ObjectTypeValue) == objectTypeConstants.mtRoutingItems.value:
             node = QTreeWidgetItem()
             node.setText(0, field.Indexes)
@@ -95,17 +100,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             for f in field.Fields:
                 if str(field.ObjectTypeValue) == objectTypeConstants.mtArray.value:
                     node_child = self.add_node(f, variables=f.Variables)
-                    parent_node.addChild(node_child)
+                    
+                    if node_child is not None:
+                        parent_node.addChild(node_child)
 
                     if str(f.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
                         if f not in child_nodes:
                             child_nodes.append(f)
                 else:
                     node_child = self.add_node(f)
-                    parent_node.addChild(node_child)
+                    
+                    if node_child is not None:
+                        parent_node.addChild(node_child)
             
-            parent_node.setIcon(0, self.get_field_icon(field, child_nodes=child_nodes))
-            return parent_node
+            if parent_node.childCount() > 0:
+                parent_node.setIcon(0, self.get_field_icon(field, child_nodes=child_nodes))
+                return parent_node
+            else:
+                return None
             
     def get_field_icon(self, field, child_nodes=list()):
         root = 'images/questions'

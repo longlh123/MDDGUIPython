@@ -9,16 +9,17 @@ from dialogs.variable_list_dialog import VariableListDialog
 from pathlib import Path
 import json
 import win32com.client as w32
-from enumerations import dataTypeConstants, objectTypeConstants
+from enumerations import dataTypeConstants, objectTypeConstants, objectDepartments
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-    def __init__(self):
+    def __init__(self, department):
         super().__init__()
 
         #Load the Ui
         self.setupUi(self) 
 
         self.mdd_path = ""
+        self.department = department
 
         self.MDM = w32.Dispatch(r'MDM.Document')
 
@@ -57,49 +58,61 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tree_questions.itemPressed.connect(self.hanldeItemPressed)
 
         for field in self.MDM.Fields:
-            self.add_node(field, parent_node=self.tree_questions)
+            node = self.add_node(field)
+            self.tree_questions.addTopLevelItem(node)
 
         self.MDM.Close()
 
-    def add_node(self, field, parent_node=None, variables=list()):
+    def add_node(self, field, variables=list()):
         if str(field.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
-            node = QTreeWidgetItem(parent_node)
+            node = QTreeWidgetItem()
             node.setText(0, field.Name)
             node.setIcon(0, self.get_field_icon(field))
 
             if field.DataType == dataTypeConstants.mtCategorical.value:
                 if field.OtherCategories.Count > 0:
                     for helperfield in field.HelperFields:
-                        self.add_node(helperfield, parent_node=node)
+                        node_other = self.add_node(helperfield)
+                        node.addChild(node_other)
             
             if len(variables) > 0:
                 for variable in variables:
-                    self.add_node(variable, parent_node=node)
+                    node_variable = self.add_node(variable)
+                    node.addChild(node_variable)
+
+            return node
         elif str(field.ObjectTypeValue) == objectTypeConstants.mtRoutingItems.value:
-            node = QTreeWidgetItem(parent_node)
+            node = QTreeWidgetItem()
             node.setText(0, field.Indexes)
             node.setIcon(0, self.get_field_icon(field))
+            return node
         else:
-            p_node = QTreeWidgetItem(parent_node)
-            p_node.setText(0, field.Name)
+            parent_node = QTreeWidgetItem()
+            parent_node.setText(0, field.Name)
             
             child_nodes = list()
 
             for f in field.Fields:
                 if str(field.ObjectTypeValue) == objectTypeConstants.mtArray.value:
-                    self.add_node(f, parent_node=p_node, variables=f.Variables)
+                    node_child = self.add_node(f, variables=f.Variables)
+                    parent_node.addChild(node_child)
 
                     if str(f.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
                         if f not in child_nodes:
                             child_nodes.append(f)
                 else:
-                    self.add_node(f, parent_node=p_node)
+                    node_child = self.add_node(f)
+                    parent_node.addChild(node_child)
             
-            p_node.setIcon(0, self.get_field_icon(field, child_nodes=child_nodes))
-    
+            parent_node.setIcon(0, self.get_field_icon(field, child_nodes=child_nodes))
+            return parent_node
+            
     def get_field_icon(self, field, child_nodes=list()):
         root = 'images/questions'
         image_name = ''
+
+        if field.Name == "_Introduction":
+            a = ""
 
         if str(field.ObjectTypeValue) == objectTypeConstants.mtVariable.value or str(field.ObjectTypeValue) == objectTypeConstants.mtRoutingItems.value:
             match field.DataType:
@@ -118,7 +131,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     image_name = 'Numeric.png'
                 case dataTypeConstants.mtText.value:
                     image_name = 'Text.png'
-                case dataTypeConstants.mtNone:
+                case dataTypeConstants.mtNone.value:
                     image_name = 'Display.png'
         else:
             match str(field.ObjectTypeValue):
@@ -210,6 +223,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tbl_bvc_questions.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         
         self.tbl_bvc_questions.cellClicked.connect(self.handleCellClicked)
+        self.tbl_bvc_questions.itemChanged.connect(self.handleItemChanged)
+
+    def handleItemChanged(self, item):
+        if item.column() == 0:
+            checkbox = self.tbl_bvc_questions.item(item.row(), 0)
+            
+            if checkbox.checkState() == Qt.CheckState.Unchecked:
+                self.tbl_bvc_questions.setItem(item.row(), 2, QTableWidgetItem(""))
 
     def handleCellClicked(self, row, col):
         item = self.tbl_bvc_questions.item(row, col)

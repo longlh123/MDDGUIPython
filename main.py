@@ -5,6 +5,7 @@ from PyQt6.QtGui import QIcon, QDrag, QColor
 from gui.frmMain import Ui_MainWindow
 
 from dialogs.variable_list_dialog import VariableListDialog
+from objects.IOMObject import Questions, Question
 
 from pathlib import Path
 import json
@@ -20,6 +21,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.mdd_path = ""
         self.department = department
+        self.questions = Questions()
 
         self.MDM = w32.Dispatch(r'MDM.Document')
 
@@ -53,21 +55,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #Set the drap and drop in QTreeWidget and QTableWidget
         self.tree_questions.setDragEnabled(True)
         self.tree_questions.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
+        
+        for field in self.MDM.Fields:
+            node = self.create_a_node(field)
+            
+            if node is not None:
+                self.tree_questions.addTopLevelItem(node)
+
+                question = Question(field)
+                self.questions.add_question(question)
+        
+        self.MDM.Close()
 
         #Connect the 'itemPressed' signal to the 'handleStartDrap' method
         self.tree_questions.itemPressed.connect(self.hanldeItemPressed)
 
-        for field in self.MDM.Fields:
-            if field.Name == "StandardTexts":
-                a = ""
-            node = self.add_node(field)
-
-            if node is not None:
-                self.tree_questions.addTopLevelItem(node)
-
-        self.MDM.Close()
-
-    def add_node(self, field, variables=list()):
+    def create_a_node(self, field, variables=list()):
         if str(field.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
             if (self.department == objectDepartments.DP.value) or (self.department == objectDepartments.CODING.value and (field.DataType == dataTypeConstants.mtText.value or (field.DataType == dataTypeConstants.mtCategorical.value and field.OtherCategories.Count > 0))):
                 node = QTreeWidgetItem()
@@ -77,12 +80,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if field.DataType == dataTypeConstants.mtCategorical.value:
                     if field.OtherCategories.Count > 0:
                         for helperfield in field.HelperFields:
-                            node_other = self.add_node(helperfield)
+                            node_other = self.create_a_node(helperfield)
                             node.addChild(node_other)
                 
                 if len(variables) > 0:
                     for variable in variables:
-                        node_variable = self.add_node(variable)
+                        node_variable = self.create_a_node(variable)
                         node.addChild(node_variable)
 
                 return node
@@ -99,7 +102,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             for f in field.Fields:
                 if str(field.ObjectTypeValue) == objectTypeConstants.mtArray.value:
-                    node_child = self.add_node(f, variables=f.Variables)
+                    node_child = self.create_a_node(f, variables=f.Variables)
                     
                     if node_child is not None:
                         parent_node.addChild(node_child)
@@ -108,7 +111,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         if f not in child_nodes:
                             child_nodes.append(f)
                 else:
-                    node_child = self.add_node(f)
+                    node_child = self.create_a_node(f)
                     
                     if node_child is not None:
                         parent_node.addChild(node_child)
@@ -268,16 +271,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             if self.variable_list_dialog.exec():
                 a = ""
-
+    
     def hanldeItemPressed(self, event):
         if event.isSelected():
             data = QMimeData()
             data.setText(event.text(0))
             
+            self.ptxt_question_content.setPlainText(event.text(0))
+
             drag = QDrag(self.tree_questions)
             drag.setMimeData(data)
             
             drag.exec()
+
+            
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():

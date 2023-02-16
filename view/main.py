@@ -1,4 +1,6 @@
-import sys
+import os, sys
+sys.path.append(os.getcwd())
+
 from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QPushButton, QTreeWidgetItem, QAbstractItemView
 from PyQt6.QtCore import Qt, QMimeData, QPoint
 from PyQt6.QtGui import QIcon, QDrag, QColor
@@ -10,7 +12,7 @@ from objects.IOMObject import Questions, Question
 from pathlib import Path
 import json
 import win32com.client as w32
-from enumerations import dataTypeConstants, objectTypeConstants, objectDepartments
+from objects.enumerations import dataTypeConstants, objectTypeConstants, objectDepartments
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, department):
@@ -42,7 +44,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
                 
                 self.init_questions()
-                self.init_bvc_questions()
+                #self.init_bvc_questions()
                 
                 QApplication.restoreOverrideCursor()
 
@@ -61,9 +63,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             
             if node is not None:
                 self.tree_questions.addTopLevelItem(node)
-
-                question = Question(field)
-                self.questions.add_question(question)
         
         self.MDM.Close()
 
@@ -76,7 +75,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 node = QTreeWidgetItem()
                 node.setText(0, field.Name)
                 node.setIcon(0, self.get_field_icon(field))
-
+                
                 if field.DataType == dataTypeConstants.mtCategorical.value:
                     if field.OtherCategories.Count > 0:
                         for helperfield in field.HelperFields:
@@ -88,6 +87,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         node_variable = self.create_a_node(variable)
                         node.addChild(node_variable)
 
+                #question = Question(field)
+
+                #parent_question = self.questions.find_question(question)
+
+                #if parent_question is None:
+                #    self.questions.add_question(question)
+                #else:
+                #    parent_question.questions.add_question(question)
+
                 return node
         elif str(field.ObjectTypeValue) == objectTypeConstants.mtRoutingItems.value:
             node = QTreeWidgetItem()
@@ -97,7 +105,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             parent_node = QTreeWidgetItem()
             parent_node.setText(0, field.Name)
-            
+
             child_nodes = list()
 
             for f in field.Fields:
@@ -123,7 +131,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 return None
             
     def get_field_icon(self, field, child_nodes=list()):
-        root = 'images/questions'
+        root = 'view/images/questions'
         image_name = ''
 
         if field.Name == "_Introduction":
@@ -283,8 +291,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             drag.setMimeData(data)
             
             drag.exec()
-
-            
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():

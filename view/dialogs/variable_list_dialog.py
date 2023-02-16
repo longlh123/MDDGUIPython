@@ -1,4 +1,3 @@
-import sys
 from PyQt6.QtWidgets import QApplication, QDialog
 from PyQt6.QtCore import Qt
 from gui.frmVariableListDialog import Ui_Dialog

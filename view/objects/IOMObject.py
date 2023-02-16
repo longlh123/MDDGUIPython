@@ -11,3 +11,10 @@ class Questions:
 
     def add_question(self, question):
         self.questions.append(question)
+
+    def find_question(self, question):
+        for qre in self.questions:
+            if qre.Name == question.Name and qre.FullName == question.FullName:
+                return qre
+        return None
+        

@@ -7,10 +7,11 @@ from PyQt6.QtGui import QIcon, QDrag, QColor
 from gui.frmMain import Ui_MainWindow
 
 from dialogs.variable_list_dialog import VariableListDialog
-from objects.IOMObject import Questions, Question
+from objects.IOMObject import Questions, Question, QuestionTreeItem
 
 from pathlib import Path
 import json
+import pickle
 import win32com.client as w32
 from objects.enumerations import dataTypeConstants, objectTypeConstants, objectDepartments
 
@@ -23,7 +24,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.mdd_path = ""
         self.department = department
-        self.questions = Questions()
+        #self.questions = Questions()
 
         self.MDM = w32.Dispatch(r'MDM.Document')
 
@@ -59,6 +60,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tree_questions.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
         
         for field in self.MDM.Fields:
+            if field.Name == "Phase_Campaigns":
+                a = ""
             node = self.create_a_node(field)
             
             if node is not None:
@@ -68,120 +71,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         #Connect the 'itemPressed' signal to the 'handleStartDrap' method
         self.tree_questions.itemPressed.connect(self.hanldeItemPressed)
-
-    def create_a_node(self, field, variables=list()):
+        
+    def create_a_node(self, field, parent=None):
         if str(field.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
-            if (self.department == objectDepartments.DP.value) or (self.department == objectDepartments.CODING.value and (field.DataType == dataTypeConstants.mtText.value or (field.DataType == dataTypeConstants.mtCategorical.value and field.OtherCategories.Count > 0))):
-                node = QTreeWidgetItem()
-                node.setText(0, field.Name)
-                node.setIcon(0, self.get_field_icon(field))
+            question = Question(field)
+            node = QuestionTreeItem(question)
+            
+            if parent is not None: 
+                parent.add(question)
                 
-                if field.DataType == dataTypeConstants.mtCategorical.value:
-                    if field.OtherCategories.Count > 0:
-                        for helperfield in field.HelperFields:
-                            node_other = self.create_a_node(helperfield)
-                            node.addChild(node_other)
-                
-                if len(variables) > 0:
-                    for variable in variables:
-                        node_variable = self.create_a_node(variable)
-                        node.addChild(node_variable)
-
-                #question = Question(field)
-
-                #parent_question = self.questions.find_question(question)
-
-                #if parent_question is None:
-                #    self.questions.add_question(question)
-                #else:
-                #    parent_question.questions.add_question(question)
-
-                return node
+                if str(field.Parent.Parent.ObjectTypeValue) == objectTypeConstants.mtArray.value:
+                    for v in field.Variables:
+                        if ".." not in v.Indexes.split(','):
+                            child_node = self.create_a_node(v, question)
+                            node.addChild(child_node)
+            return node
         elif str(field.ObjectTypeValue) == objectTypeConstants.mtRoutingItems.value:
-            node = QTreeWidgetItem()
-            node.setText(0, field.Indexes)
-            node.setIcon(0, self.get_field_icon(field))
+            question = Question(field)
+            if parent is not None: parent.add(question)
+            node = QuestionTreeItem(question)
             return node
         else:
-            parent_node = QTreeWidgetItem()
-            parent_node.setText(0, field.Name)
-
-            child_nodes = list()
-
+            question = Question(field)
+            if parent is not None: parent.add(question)
+            node = QuestionTreeItem(question)
+            
             for f in field.Fields:
-                if str(field.ObjectTypeValue) == objectTypeConstants.mtArray.value:
-                    node_child = self.create_a_node(f, variables=f.Variables)
-                    
-                    if node_child is not None:
-                        parent_node.addChild(node_child)
+                child_node = self.create_a_node(f, question)
+                node.addChild(child_node)
 
-                    if str(f.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
-                        if f not in child_nodes:
-                            child_nodes.append(f)
-                else:
-                    node_child = self.create_a_node(f)
-                    
-                    if node_child is not None:
-                        parent_node.addChild(node_child)
-            
-            if parent_node.childCount() > 0:
-                parent_node.setIcon(0, self.get_field_icon(field, child_nodes=child_nodes))
-                return parent_node
-            else:
-                return None
-            
-    def get_field_icon(self, field, child_nodes=list()):
-        root = 'view/images/questions'
-        image_name = ''
-
-        if field.Name == "_Introduction":
-            a = ""
-
-        if str(field.ObjectTypeValue) == objectTypeConstants.mtVariable.value or str(field.ObjectTypeValue) == objectTypeConstants.mtRoutingItems.value:
-            match field.DataType:
-                case dataTypeConstants.mtBoolean.value:
-                    image_name = 'Boolean.png'
-                case dataTypeConstants.mtCategorical.value:
-                    if field.MinValue == 1 and field.MaxValue == 1:
-                        image_name = 'SingleResponse.png'
-                    else:
-                        image_name = 'MultipleResponse.png'
-                case dataTypeConstants.mtDate.value:
-                    image_name = 'DateTime.png'
-                case dataTypeConstants.mtDouble.value:
-                    image_name = 'Numeric.png'
-                case dataTypeConstants.mtLong.value:
-                    image_name = 'Numeric.png'
-                case dataTypeConstants.mtText.value:
-                    image_name = 'Text.png'
-                case dataTypeConstants.mtNone.value:
-                    image_name = 'Display.png'
-        else:
-            match str(field.ObjectTypeValue):
-                case objectTypeConstants.mtClass.value:
-                    image_name = 'Block.png'
-                case objectTypeConstants.mtArray.value:
-                    if len(child_nodes) == 1:
-                        match child_nodes[0].DataType:
-                            case dataTypeConstants.mtBoolean.value:
-                                image_name = 'Grid.png'
-                            case dataTypeConstants.mtCategorical.value:
-                                if child_nodes[0].MinValue == 1 and child_nodes[0].MaxValue == 1:
-                                    image_name = 'SingleResponseGrid.png'
-                                else:
-                                    image_name = 'NumericResponseGrid.png'
-                            case dataTypeConstants.mtDate.value:
-                                image_name = 'DateTime.png'
-                            case dataTypeConstants.mtDouble.value:
-                                image_name = 'NumericResponseGrid.png'
-                            case dataTypeConstants.mtLong.value:
-                                image_name = 'NumericResponseGrid.png'
-                            case dataTypeConstants.mtText.value:
-                                image_name = 'TextResponseGrid.png'
-                    else:
-                        image_name = 'Loop.png'
-
-        return QIcon("{}/{}".format(root, image_name))
+            return node
 
     def init_bvc_questions(self):
         f = open(r'temp\bvc_temp.json', mode = 'r', encoding="utf-8")
@@ -282,15 +201,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     
     def hanldeItemPressed(self, event):
         if event.isSelected():
-            data = QMimeData()
-            data.setText(event.text(0))
+            self.ptxt_question_content.setPlainText(event.text(2))
+            variables = event.question.get_variables_list()
+            a = ""
+            #data = QMimeData()
+            #data.setText(event.text(1))
             
-            self.ptxt_question_content.setPlainText(event.text(0))
+            
 
-            drag = QDrag(self.tree_questions)
-            drag.setMimeData(data)
+            #drag = QDrag(self.tree_questions)
+            #drag.setMimeData(data)
             
-            drag.exec()
+            #drag.exec()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():

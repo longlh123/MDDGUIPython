@@ -60,7 +60,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tree_questions.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
         
         for field in self.MDM.Fields:
-            if field.Name == "Phase_Campaigns":
+            if field.Name == "Question check":
                 a = ""
             node = self.create_a_node(field)
             

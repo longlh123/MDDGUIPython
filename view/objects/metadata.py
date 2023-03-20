@@ -295,7 +295,7 @@ class Metadata(mrDataFileDsc):
             print("A length mismatch error between 'columns': {} and 'values': {}".format(','.join(q['columns']), ','.join(q['values']))) 
 
         return q
-
+    
 class BVCObject(mrDataFileDsc):
     def __init__(self, mdd_path, ddf_path, sql_query):
         super().__init__(mdd_path, ddf_path, sql_query)

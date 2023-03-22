@@ -25,7 +25,7 @@ class LoginForm(QWidget):
         #show the login window
         self.show()
 
-    def authenticate(self):
+    def authenticate(self): 
         email = self.ui.edit_email_address.text()
         password = self.ui.edit_password.text()
 

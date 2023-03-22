@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'ui/frmMain.ui'
+# Form implementation generated from reading ui file 'view\ui\frmMain.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.0
 #
@@ -19,15 +19,15 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.centralwidget.sizePolicy().hasHeightForWidth())
         self.centralwidget.setSizePolicy(sizePolicy)
         self.centralwidget.setObjectName("centralwidget")
         self.tbl_bvc_questions = QtWidgets.QTableWidget(self.centralwidget)
-        self.tbl_bvc_questions.setGeometry(QtCore.QRect(380, 90, 701, 741))
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
+        self.tbl_bvc_questions.setGeometry(QtCore.QRect(380, 80, 701, 751))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Maximum)
         sizePolicy.setHorizontalStretch(3)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.tbl_bvc_questions.sizePolicy().hasHeightForWidth())
@@ -38,7 +38,7 @@ class Ui_MainWindow(object):
         self.tree_questions = QtWidgets.QTreeWidget(self.centralwidget)
         self.tree_questions.setGeometry(QtCore.QRect(10, 10, 361, 821))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
-        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.tree_questions.sizePolicy().hasHeightForWidth())
         self.tree_questions.setSizePolicy(sizePolicy)
@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.tree_questions.setObjectName("tree_questions")
         self.tree_questions.headerItem().setText(0, "1")
         self.ptxt_question_content = QtWidgets.QPlainTextEdit(self.centralwidget)
-        self.ptxt_question_content.setGeometry(QtCore.QRect(380, 10, 701, 71))
+        self.ptxt_question_content.setGeometry(QtCore.QRect(380, 10, 701, 61))
         self.ptxt_question_content.setObjectName("ptxt_question_content")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
@@ -71,4 +71,3 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "DP"))
         self.menuFile.setTitle(_translate("MainWindow", "File"))
         self.actionOpen.setText(_translate("MainWindow", "Open"))
-

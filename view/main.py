@@ -13,7 +13,7 @@ from pathlib import Path
 import json
 import pickle
 import win32com.client as w32
-from objects.enumerations import dataTypeConstants, objectTypeConstants, objectDepartments
+from objects.enumerations import dataTypeConstants, objectTypeConstants, variableUsageConstants
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, department):
@@ -50,57 +50,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 QApplication.restoreOverrideCursor()
 
     def init_questions(self):
-        self.MDM.Open(str(self.mdd_path))
+        try:
+            self.MDM.Open(str(self.mdd_path))
 
-        self.tree_questions.clear()
-        self.tree_questions.setHeaderLabel(self.mdd_path.name)
-        
-        #Set the drap and drop in QTreeWidget and QTableWidget
-        self.tree_questions.setDragEnabled(True)
-        self.tree_questions.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
-        
-        for field in self.MDM.Fields:
-            if field.Name == "Question check":
-                a = ""
-            node = self.create_a_node(field)
+            self.tree_questions.clear()
+            self.tree_questions.setHeaderLabel(self.mdd_path.name)
             
-            if node is not None:
-                self.tree_questions.addTopLevelItem(node)
-        
-        self.MDM.Close()
+            #Set the drap and drop in QTreeWidget and QTableWidget
+            self.tree_questions.setDragEnabled(True)
+            self.tree_questions.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
+            
+            for field in self.MDM.Fields:
+                if field.Name == "S12b":
+                    a = ""
+                node = QuestionTreeItem(field)
 
-        #Connect the 'itemPressed' signal to the 'handleStartDrap' method
-        self.tree_questions.itemPressed.connect(self.hanldeItemPressed)
-        
-    def create_a_node(self, field, parent=None):
-        if str(field.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
-            question = Question(field)
-            node = QuestionTreeItem(question)
+                if node is not None:
+                    self.tree_questions.addTopLevelItem(node)
             
-            if parent is not None: 
-                parent.add(question)
-                
-                if str(field.Parent.Parent.ObjectTypeValue) == objectTypeConstants.mtArray.value:
-                    for v in field.Variables:
-                        if ".." not in v.Indexes.split(','):
-                            child_node = self.create_a_node(v, question)
-                            node.addChild(child_node)
-            return node
-        elif str(field.ObjectTypeValue) == objectTypeConstants.mtRoutingItems.value:
-            question = Question(field)
-            if parent is not None: parent.add(question)
-            node = QuestionTreeItem(question)
-            return node
-        else:
-            question = Question(field)
-            if parent is not None: parent.add(question)
-            node = QuestionTreeItem(question)
-            
-            for f in field.Fields:
-                child_node = self.create_a_node(f, question)
-                node.addChild(child_node)
+            self.MDM.Close()
 
-            return node
+            #Connect the 'itemPressed' signal to the 'handleStartDrap' method
+            self.tree_questions.itemPressed.connect(self.hanldeItemPressed)
+        except AttributeError:
+            a = ""
 
     def init_bvc_questions(self):
         f = open(r'temp\bvc_temp.json', mode = 'r', encoding="utf-8")
@@ -201,8 +174,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     
     def hanldeItemPressed(self, event):
         if event.isSelected():
-            self.ptxt_question_content.setPlainText(event.text(2))
-            variables = event.question.get_variables_list()
+            self.ptxt_question_content.setPlainText(event.text(1))
+            variables = event.get_variables_list()
             a = ""
             #data = QMimeData()
             #data.setText(event.text(1))

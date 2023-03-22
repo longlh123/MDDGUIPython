@@ -75,15 +75,18 @@ class categoryFlagConstants(Enum):
     flOther = 16
     flExclusive = 4291    
 
+class variableUsageConstants(Enum):
+    vtVariable = 0
+    vtOtherSpecify = 1040
+    vtArray = 8
 
-#flNone          = &H0000
-#flUser          = &H0001
-#flDontknow      = &H0002
-#flRefuse        = &H0004
-#flNoanswer      = &H0008
-#flOther         = &H0010
-#flMultiplier    = &H0020
-#flExclusive     = &H1000
-#flFixedPosition = &H0040
-#flNoFilter      = &H0080
-#flInline        = &H0100
+    #vtSourceFile   = vtHelperField | &H0100
+    #vtCoding       = vtHelperField | &H0200
+    #
+    #vtMultiplier   = vtHelperField | &H0800
+    #vtGrid         = &H0001
+    #vtCompound     = &H0002
+    #vtClass        = &H0004
+    #vtArray        = &H0008
+    #vtFilter       = &H1000
+    #vtWeight       = &H2000

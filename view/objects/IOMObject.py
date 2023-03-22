@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QTreeWidgetItem
 from PyQt6.QtCore import Qt, QMimeData
 from PyQt6.QtGui import QIcon
 
-from objects.enumerations import dataTypeConstants, objectTypeConstants, objectDepartments
+from objects.enumerations import dataTypeConstants, objectTypeConstants, variableUsageConstants
 
 import pickle
 import re
@@ -38,23 +38,26 @@ class Question():
         self.name = field.Name
         self.fullname = field.FullName
         self.objecttype = str(field.ObjectTypeValue)
-        self.indexes = None if str(field.ObjectTypeValue) != objectTypeConstants.mtRoutingItems.value else field.Indexes
+        self.datatype = None if str(field.ObjectTypeValue) != objectTypeConstants.mtVariable.value else field.DataType
+        self.usagetype = None if str(field.ObjectTypeValue) != objectTypeConstants.mtVariable.value else field.UsageType
+        self.indexes = re.findall("(\[\.\.\])", field.FullName) if str(field.ObjectTypeValue) != objectTypeConstants.mtRoutingItems.value else field.Indexes.split(',')
         self.set_label(field)
         self.icon = self.get_field_icon(field)
         self.questions = list()
 
     def set_label(self, field):
         if str(field.ObjectTypeValue) == objectTypeConstants.mtRoutingItems.value:
-            self.label = self.get_variable_label(field.Parent.Parent, self.indexes)
+            parent = field.Parent.Parent if field.UsageType == variableUsageConstants.vtArray.value else field.Parent.Parent.Parent.Parent.Parent
+            self.label = self.get_variable_label(parent, len(self.indexes) - 1)
         else:
             self.label = self.replace_label(field.Label) 
 
-    def get_variable_label(self, field, category):
-        if field.Parent.Parent is None:
-            return field.Categories[re.sub(pattern="[\{\}]", repl="", string=category)].Label
+    def get_variable_label(self, field, index):
+        if index == 0:
+            return field.Categories[re.sub(pattern="[\{\}]", repl="", string=self.indexes[index])].Label
         else:
-            return "{} - {}".format(self.get_variable_label(field.Parent.Parent, self.indexes.split(',')[len(self.indexes.split(',')) - 2]), field.Categories[re.sub(pattern="[\{\}]", repl="", string=self.indexes.split(',')[len(self.indexes.split(',')) - 1])].Label) 
-
+            return "{} - {}".format(self.get_variable_label(field.Parent.Parent, index - 1), field.Categories[re.sub(pattern="[\{\}]", repl="", string=self.indexes[index])].Label)
+        
     def add(self, question):
         self.questions.append(question)
 
@@ -129,40 +132,60 @@ class Question():
         s = re.sub(pattern="({})".format("|".join(blacklist)), repl="", string=s)
         return s 
 
-    def get_variables_list(self, question=None):
+    def get_variables_list(self):
         variables_list = list()
 
-        if question is None:
-            if len(self.questions) == 0:
+        if self.objecttype == str(objectTypeConstants.mtVariable.value) or self.objecttype == str(objectTypeConstants.mtRoutingItems.value):
+            if "[..]" not in self.indexes:
                 variables_list.append(self.fullname)
-            else:
-                for q in self.questions:
-                    variables_list.extend(self.get_variables_list(q))
+
+            for q in self.questions:
+                variables_list.extend(q.get_variables_list())
         else:
-            if len(question.questions) == 0:
-                variables_list.append(question.fullname)
-            else:
-                for q in question.questions:
-                    variables_list.extend(self.get_variables_list(q))
-        
+            for q in self.questions:
+                variables_list.extend(q.get_variables_list())
+
         return variables_list
 
-
-
 class QuestionTreeItem(QTreeWidgetItem):
-    def __init__(self, question):
-        super().__init__(["", question.fullname, question.label])
-        self.question = question
+    def __init__(self, field):
+        super().__init__([""])
+        self.init(field)
         self.setIcon(0, QIcon(self.question.icon))
         self.set_text()
+
+    def init(self, field):
+        self.question = Question(field)
+
+        if str(field.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
+            if field.DataType == dataTypeConstants.mtCategorical.value:
+                if field.OtherCategories.Count > 0:
+                    for helperfield in field.HelperFields:
+                        other_child_node = QuestionTreeItem(helperfield)
+                        self.addChild(other_child_node)
+                        self.question.questions.append(other_child_node.question)
+        
+            if "[..]" in self.question.indexes:
+                for v in field.Variables:
+                    if ".." not in v.Indexes.split(","):
+                        var_child_node = QuestionTreeItem(v)
+                        self.addChild(var_child_node)
+                        self.question.questions.append(var_child_node.question)
+        elif str(field.ObjectTypeValue) == objectTypeConstants.mtArray.value or str(field.ObjectTypeValue) == objectTypeConstants.mtClass.value:
+            for f in field.Fields:
+                child_node = QuestionTreeItem(f)
+                self.addChild(child_node)
+                self.question.questions.append(child_node.question)
 
     def set_text(self):
         match self.question.objecttype:
             case objectTypeConstants.mtVariable.value | objectTypeConstants.mtArray.value | objectTypeConstants.mtClass.value:
                 self.setText(0, self.question.name)
             case objectTypeConstants.mtRoutingItems.value:
-                self.setText(0, self.question.indexes)
-
+                self.setText(0, ",".join(self.question.indexes))
+        
+        self.setText(1, self.question.label)
+        
     def serialize_question(self):
         return pickle.dumps(self.question)
 
@@ -170,9 +193,7 @@ class QuestionTreeItem(QTreeWidgetItem):
         mime_data = QMimeData()
         mime_data.setData("application/x-question", self.serialize_question())
         self.setData(0, Qt.ItemDataRole.UserRole, mime_data)
-    
-#class Category(Field):
-#    def __init__(self, category):
-#        Field.__init__(self, category)
-#        self.categories = Categories()
 
+    def get_variables_list(self):
+        return self.question.get_variables_list()
+    

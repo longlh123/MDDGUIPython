@@ -1,19 +1,20 @@
 import os, sys
 sys.path.append(os.getcwd())
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QPushButton, QTreeWidgetItem, QAbstractItemView
-from PyQt6.QtCore import Qt, QMimeData, QPoint
-from PyQt6.QtGui import QIcon, QDrag, QColor
+from PyQt6.QtWidgets import QApplication, QMainWindow, QFileDialog, QTableWidgetItem, QHeaderView, QPushButton, QAbstractItemView
+from PyQt6.QtCore import Qt, QFile, QIODevice, QXmlStreamReader
+from PyQt6.QtGui import QStandardItemModel
 from gui.frmMain import Ui_MainWindow
 
 from dialogs.variable_list_dialog import VariableListDialog
-from objects.IOMObject import Questions, Question, QuestionTreeItem
+from dialogs.query_tool_dialog import QueryToolDialog
+from sub_windows.code_listing_form import CodeListingForm
+from sub_windows.database_form import DatabaseMdiSubWindow
+from objects.IOMObject import QuestionTreeItem
 
 from pathlib import Path
 import json
-import pickle
 import win32com.client as w32
-from objects.enumerations import dataTypeConstants, objectTypeConstants, variableUsageConstants
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, department):
@@ -24,16 +25,161 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.mdd_path = ""
         self.department = department
-        #self.questions = Questions()
-
+        
         self.MDM = w32.Dispatch(r'MDM.Document')
 
+        #Menu File
         self.actionOpen.triggered.connect(self.open_file_dialog)
         
+        #Menu View
+        self.actionProject_Box.toggled.connect(self.toggle_dock_widget)
+        self.actionQuestion_Box.toggled.connect(self.toggle_dock_widget)
+        self.actionQuery_Syntax_Box.toggled.connect(self.toggle_dock_widget)
+
+        #Menu Variables
+        self.actionShow_Open_Ended_Variables.toggled.connect(self.toggle_dock_widget)
+
+        self.actionQuery_Tool.triggered.connect(self.handle_query_tool_triggered)
+
+        self.dock_project.visibilityChanged.connect(self.handle_visibility_changed)
+        self.dock_question_properties.visibilityChanged.connect(self.handle_visibility_changed)
+        self.dock_query_syntax_box.visibilityChanged.connect(self.handle_visibility_changed)
+
+        self.ptext_query_syntax.textChanged.connect(self.handle_query_syntax_textchanged)
+        self.pbtn_apply.clicked.connect(self.handle_apply_query_syntax_clicked)
+
+        #Menu Window
+        self.actionDataBase.triggered.connect(self.window_triggered)
+        self.actionCodeListing.triggered.connect(self.window_triggered)
+
+        self.line_filter.returnPressed.connect(self.handle_return_pressed)
+
+        self.init()
+
+    def init(self, enabled=False):
+        
+        self.enable_actionWindow(enabled)
+        self.enable_actionVariables(enabled)
+        self.enable_actionBox(enabled)
+
+        self.dock_project.setVisible(enabled)
+        self.dock_question_properties.setVisible(enabled)
+        self.dock_query_syntax_box.setVisible(enabled)
+
+        self.close_all_subwindows()
+
+    def enable_actionWindow(self, enable):
+        self.actionDataBase.setEnabled(enable)
+        self.actionCodeListing.setEnabled(enable)
+
+    def enable_actionVariables(self, enable):
+        self.actionShow_Open_Ended_Variables.setEnabled(enable)
+
+    def enable_actionBox(self, enable):
+        self.actionProject_Box.setEnabled(enable)
+        self.actionQuestion_Box.setEnabled(enable)
+        self.actionQuery_Syntax_Box.setEnabled(enable)
+
+    def init_question_box(self):
+        #load XML file
+        file = QFile(r"view/temp/question_properties_table.xml")
+
+        if not file.open(QIODevice.OpenModeFlag.ReadOnly | QIODevice.OpenModeFlag.Text):
+            print("Failed to open XML file: ", file.errorString())
+            sys.exit(1)
+        
+        #Create XML stream reader
+        reader = QXmlStreamReader(file)
+
+        #Read XML file
+        while not reader.atEnd():
+            if reader.isStartElement():
+                if reader.name() == "TableSetting":
+                    rowCount = int(reader.attributes().value("rows"))
+                    columnCount = int(reader.attributes().value("columns"))
+
+                    self.table_question_properties.setRowCount(rowCount)
+                    self.table_question_properties.setColumnCount(columnCount)
+                elif reader.name() == "Header":
+                    while reader.readNextStartElement():
+                        if reader.isStartElement():
+                            print(reader.name(), "open")
+                        reader.readNext()
+
+
+
+            if reader.isEndElement():
+                print(reader.name(), "close")
+                """
+                if reader.name() == "TableSetting":
+                    rowCount = int(reader.attributes().value("rows"))
+                    columnCount = int(reader.attributes().value("columns"))
+
+                    self.table_question_properties.setRowCount(rowCount)
+                    self.table_question_properties.setColumnCount(columnCount)
+                elif reader.name() == "Header":                
+                    col_names = list()
+
+                    while not reader.isEndElement() or reader.name() != "Header":
+                        if reader.isStartElement() and reader.name() == "Column":
+                            col_names.append(reader.attributes().value("name"))
+                        reader.readNext()
+
+                    self.table_question_properties.setHorizontalHeaderLabels(col_names)
+                elif reader.name() == "Rows":
+                    while not reader.isEndElement() or reader.name() != "Rows":
+                        if reader.isStartElement() and reader.name() == "Row":
+
+
+                            print(reader.attributes().value("value"))
+                        reader.readNext()
+                """
+            reader.readNext()  
+
+        #Close file
+        file.close()        
+
+    def generate_categories_list(self, categories):
+        self.tbl_categories_list.clear()
+        self.tbl_categories_list.setRowCount(0)
+        self.tbl_categories_list.setColumnCount(0)
+
+        if categories is not None:
+            self.tbl_categories_list.setColumnCount(2)
+            self.tbl_categories_list.setRowCount(len(categories))
+            self.tbl_categories_list.setHorizontalHeaderLabels(["Name", "Label"])
+
+            self.tbl_categories_list.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            self.tbl_categories_list.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+
+            row = 0
+
+            for cat in categories:
+                item = QTableWidgetItem()
+                item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                item.setText(cat.name)
+                self.tbl_categories_list.setItem(row, 0, item)
+                
+                item = QTableWidgetItem()
+                item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                item.setText(cat.label)
+                item.setToolTip(cat.label)
+                self.tbl_categories_list.setItem(row, 1, item)
+
+                row = row + 1
+
+    def handle_query_tool_triggered(self):
+        dialog = QueryToolDialog()
+
+        if dialog.exec():
+            a = ""
+
     def open_file_dialog(self):
         dialog = QFileDialog(self)
         dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
-        dialog.setNameFilter("Data Collection Data Files (*.mdd)")
+        dialog.setNameFilters(["Data Collection Data Files (*.mdd)", "Excel File (*.xlsx)"])
         dialog.setViewMode(QFileDialog.ViewMode.List)
 
         if dialog.exec():
@@ -44,21 +190,88 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
                 QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
                 
-                self.init_questions()
-                #self.init_bvc_questions()
+                self.enable_actionWindow(True)
+                self.enable_actionVariables(True)
+                self.enable_actionBox(True)
                 
+                self.init_questions()
+                self.init_question_box()
+
+                self.init(enabled=True)
+
                 QApplication.restoreOverrideCursor()
+
+    def handle_return_pressed(self):
+        self.filter_variables(self.line_filter.text())
+
+    def toggle_dock_widget(self, state):
+        match self.sender().text():
+            case "Project Box":
+                self.dock_project.setVisible(state)
+            case "Question Box":
+                self.dock_question_properties.setVisible(state)
+            case "Query Syntax Box":
+                self.ptext_query_syntax.setPlainText("")
+                self.dock_query_syntax_box.setVisible(state)
+            case "Show Open-Ended Variables":
+                self.line_filter.setText("")
+                self.filter_variables(self.line_filter.text())
+
+    def handle_query_syntax_textchanged(self):
+        self.pbtn_apply.setEnabled(len(self.sender().toPlainText()) > 0)
+
+    def handle_apply_query_syntax_clicked(self):
+        query = self.ptext_query_syntax.toPlainText()
+
+
+
+    def filter_variables(self, string=""):
+        for i in range(self.wtree_questions.topLevelItemCount()):
+            item = self.wtree_questions.topLevelItem(i)
+            item.set_hidden(string, filter_open_ended_variables=self.actionShow_Open_Ended_Variables.isChecked())
+
+    def handle_visibility_changed(self, visible):
+        dock_panel = self.sender()
+
+        match dock_panel.windowTitle():
+            case "Project":
+                self.actionProject_Box.setChecked(visible)
+            case "Question":
+                self.actionQuestion_Box.setChecked(visible)
+            case "Query Syntax":
+                self.actionQuery_Syntax_Box.setChecked(visible)
+
+    def window_triggered(self, p):
+        match self.sender().text():
+            case "Database":
+                sub = DatabaseMdiSubWindow()
+            case "Code Listing":
+                sub = CodeListingForm()
+        
+        if sub.windowTitle() not in [s.windowTitle() for s in self.mdiArea.subWindowList()]:
+            self.mdiArea.addSubWindow(sub)
+            sub.show()
+            sub.closeEvent = lambda event: self.handle_sub_window_closed(sub, event)
+
+    def handle_sub_window_closed(self, sub_window, event):
+        for sub in self.mdiArea.subWindowList():
+            if sub.windowTitle() == sub_window.windowTitle():
+                self.mdiArea.removeSubWindow(sub)
+
+    def close_all_subwindows(self):
+        for sub in self.mdiArea.subWindowList():
+            sub.close()
 
     def init_questions(self):
         try:
             self.MDM.Open(str(self.mdd_path))
 
-            self.tree_questions.clear()
-            self.tree_questions.setHeaderLabel(self.mdd_path.name)
+            self.wtree_questions.clear()
+            self.wtree_questions.setHeaderLabel(self.mdd_path.name)
             
             #Set the drap and drop in QTreeWidget and QTableWidget
-            self.tree_questions.setDragEnabled(True)
-            self.tree_questions.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
+            self.wtree_questions.setDragEnabled(True)
+            self.wtree_questions.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
             
             for field in self.MDM.Fields:
                 if field.Name == "S12b":
@@ -66,15 +279,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 node = QuestionTreeItem(field)
 
                 if node is not None:
-                    self.tree_questions.addTopLevelItem(node)
+                    self.wtree_questions.addTopLevelItem(node)
             
             self.MDM.Close()
 
             #Connect the 'itemPressed' signal to the 'handleStartDrap' method
-            self.tree_questions.itemPressed.connect(self.hanldeItemPressed)
+            self.wtree_questions.itemPressed.connect(self.hanldeItemPressed)
         except AttributeError:
             a = ""
-
+  
     def init_bvc_questions(self):
         f = open(r'temp\bvc_temp.json', mode = 'r', encoding="utf-8")
         bvc_variables = json.loads(f.read())
@@ -174,9 +387,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     
     def hanldeItemPressed(self, event):
         if event.isSelected():
-            self.ptxt_question_content.setPlainText(event.text(1))
             variables = event.get_variables_list()
-            a = ""
+            #self.init_question_box(question_content=event.text(1), categories=event.question.categories)
+
             #data = QMimeData()
             #data.setText(event.text(1))
             

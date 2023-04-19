@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QTreeWidgetItem
+from PyQt6.QtWidgets import QTreeWidgetItem, QTableWidget, QTableWidgetItem
 from PyQt6.QtCore import Qt, QMimeData
 from PyQt6.QtGui import QIcon
 
@@ -7,6 +7,7 @@ from objects.enumerations import dataTypeConstants, objectTypeConstants, variabl
 import pickle
 import re
 
+"""
 class Questions():
     def __init__(self):
         self.questions = list()
@@ -19,20 +20,21 @@ class Questions():
             if qre.Name == question.Name and qre.FullName == question.FullName:
                 return qre
         return None
+"""
 
-class Categories():
-    def __init__(self):
-        self.categories = list()
+class Category():
+    def __init__(self, category):
+        self.name = category.Name
+        self.label = category.Label
+        self.isotherlocal = category.IsOtherLocal
 
-    def add(self, category):
-        self.categories.append(category)
+class Categories(list):
+    def __init__(self, categories):
+        super().__init__(Category(cat) for cat in categories)
 
-    def find(self, category):
-        for cat in self.categories:
-            if cat.Name == category.Name:
-                return cat
-        return None
-    
+    def get_other_categories(self):
+        return [item for item in self if item.isotherlocal == True]
+
 class Question():
     def __init__(self, field):
         self.name = field.Name
@@ -44,6 +46,11 @@ class Question():
         self.set_label(field)
         self.icon = self.get_field_icon(field)
         self.questions = list()
+        self.categories = None
+
+        if str(field.ObjectTypeValue) == objectTypeConstants.mtVariable.value:
+            if field.DataType == dataTypeConstants.mtCategorical.value:
+                self.categories = Categories(field.Categories) 
 
     def set_label(self, field):
         if str(field.ObjectTypeValue) == objectTypeConstants.mtRoutingItems.value:
@@ -185,6 +192,29 @@ class QuestionTreeItem(QTreeWidgetItem):
                 self.setText(0, ",".join(self.question.indexes))
         
         self.setText(1, self.question.label)
+    
+    def set_hidden(self, text, filter_open_ended_variables=False):
+        self.setHidden(self.get_hidden(text, filter_open_ended_variables=filter_open_ended_variables))
+
+    def get_hidden(self, text, filter_open_ended_variables=False):
+        visible = list()
+
+        if self.question.objecttype == str(objectTypeConstants.mtVariable.value):
+            visible.append(text.lower() in self.text(0).lower()) 
+
+            if filter_open_ended_variables:
+                visible.append(((self.question.datatype == dataTypeConstants.mtCategorical.value and len(self.question.categories.get_other_categories()) > 0) or self.question.datatype == dataTypeConstants.mtText.value))
+                
+            return not all(visible)
+        else:
+            if self.question.objecttype == str(objectTypeConstants.mtArray.value) or self.question.objecttype == str(objectTypeConstants.mtClass.value):
+                count_question = 0
+                for i in range(self.childCount()):
+                    r = self.child(i).get_hidden(text, filter_open_ended_variables=filter_open_ended_variables)
+                    self.child(i).setHidden(r)
+                    if not r: count_question = count_question + 1
+
+            return count_question == 0
         
     def serialize_question(self):
         return pickle.dumps(self.question)
@@ -196,4 +226,8 @@ class QuestionTreeItem(QTreeWidgetItem):
 
     def get_variables_list(self):
         return self.question.get_variables_list()
-    
+
+class CodeListingWidgetItem(QTreeWidgetItem):
+    def __init__(self, code_list_name):
+        super().__init__([""])
+        self.setText(0, code_list_name)

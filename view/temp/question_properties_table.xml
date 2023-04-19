@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TableSetting rows="3" columns="2">
+    <Header>
+        <Column name="Property" width="100" />
+        <Column name="Value" width="100" />
+    </Header>
+    <Rows>
+        <Row>
+            <Cell row="0" column="0" value="Object Name" />
+            <Cell row="0" column="1" value="a" />
+        </Row>
+        <Row>
+            <Cell row="1" column="0" value="Alias Name" />
+            <Cell row="1" column="1" value="b" />
+        </Row>
+    </Rows>
+</TableSetting>

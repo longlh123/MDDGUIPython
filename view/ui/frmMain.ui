@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1094</width>
-    <height>885</height>
+    <height>880</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -26,17 +26,20 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
+   <property name="focusPolicy">
+    <enum>Qt::ClickFocus</enum>
+   </property>
    <widget class="QTableWidget" name="tbl_bvc_questions">
     <property name="geometry">
      <rect>
       <x>380</x>
-      <y>90</y>
+      <y>80</y>
       <width>701</width>
-      <height>741</height>
+      <height>751</height>
      </rect>
     </property>
     <property name="sizePolicy">
-     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
       <horstretch>3</horstretch>
       <verstretch>0</verstretch>
      </sizepolicy>
@@ -53,7 +56,7 @@
     </property>
     <property name="sizePolicy">
      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-      <horstretch>1</horstretch>
+      <horstretch>0</horstretch>
       <verstretch>0</verstretch>
      </sizepolicy>
     </property>
@@ -72,7 +75,7 @@
       <x>380</x>
       <y>10</y>
       <width>701</width>
-      <height>71</height>
+      <height>61</height>
      </rect>
     </property>
    </widget>

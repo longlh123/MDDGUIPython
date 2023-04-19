@@ -105,7 +105,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         if reader.isStartElement():
                             print(reader.name(), "open")
                         reader.readNext()
-
+                elif reader.name() == "Column":
+                    print(reader.name())
 
 
             if reader.isEndElement():
